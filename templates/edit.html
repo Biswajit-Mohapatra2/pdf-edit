@@ -40,16 +40,8 @@
                 <p class="mt-2 text-sm text-gray-500">Enter a number between 1 and {{ num_pages + 1 }}. The new page will be inserted before the specified position.</p>
             </div>
 
-            <div>
-                <button type="submit" name="action" value="add_page" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Add New Page and Download
-                </button>
-            </div>
-        </form>
+            <hr class="my-8">
 
-        <hr class="my-8">
-
-        <form method="post" class="space-y-6">
             <h2 class="text-xl font-semibold mb-4">Delete Pages</h2>
             <div class="grid grid-cols-4 gap-4">
                 {% for i in range(1, num_pages + 1) %}
@@ -59,9 +51,10 @@
                 </div>
                 {% endfor %}
             </div>
+
             <div>
-                <button type="submit" name="action" value="delete_pages" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
-                    Delete Selected Pages and Download
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Apply Changes and Download
                 </button>
             </div>
         </form>

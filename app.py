@@ -41,54 +41,39 @@ def edit_pdf(filename):
     num_pages = len(pdf.pages)
     
     if request.method == 'POST':
-        action = request.form.get('action')
+        writer = PdfWriter()
         
-        if action == 'add_page':
-            new_page_file = request.files.get('new_page')
-            insert_position = int(request.form.get('insert_position', 1)) - 1
-            
-            if new_page_file and allowed_file(new_page_file.filename):
-                writer = PdfWriter()
-                
-                # Get the size of the first page
-                first_page = pdf.pages[0]
-                target_width = first_page.mediabox.width
-                target_height = first_page.mediabox.height
-                
-                # Add existing pages
-                for i in range(num_pages):
-                    if i == insert_position:
-                        # Add the new page at the specified position
-                        add_new_page(writer, new_page_file, target_width, target_height)
-                    writer.add_page(pdf.pages[i])
-                
-                # If the insert position is after the last page, add the new page at the end
-                if insert_position >= num_pages:
-                    add_new_page(writer, new_page_file, target_width, target_height)
-                
-                output = io.BytesIO()
-                writer.write(output)
-                output.seek(0)
-                
-                return send_file(output, download_name='edited_' + filename, as_attachment=True)
-            else:
-                flash('Please upload a valid PDF or image file (PNG, JPG, JPEG)')
+        # Handle page deletion
+        pages_to_delete = request.form.getlist('delete_pages')
+        pages_to_keep = [i for i in range(num_pages) if str(i+1) not in pages_to_delete]
         
-        elif action == 'delete_pages':
-            pages_to_delete = request.form.getlist('delete_pages')
-            if pages_to_delete:
-                writer = PdfWriter()
-                for i in range(num_pages):
-                    if str(i+1) not in pages_to_delete:
-                        writer.add_page(pdf.pages[i])
-                
-                output = io.BytesIO()
-                writer.write(output)
-                output.seek(0)
-                
-                return send_file(output, download_name='edited_' + filename, as_attachment=True)
-            else:
-                flash('Please select at least one page to delete')
+        # Handle new page insertion
+        new_page_file = request.files.get('new_page')
+        insert_position = int(request.form.get('insert_position', 1)) - 1
+        
+        if new_page_file and allowed_file(new_page_file.filename):
+            # Get the size of the first page
+            first_page = pdf.pages[0]
+            target_width = first_page.mediabox.width
+            target_height = first_page.mediabox.height
+        
+        # Add pages to the new PDF
+        for i in pages_to_keep:
+            if i == insert_position and new_page_file and allowed_file(new_page_file.filename):
+                add_new_page(writer, new_page_file, target_width, target_height)
+            writer.add_page(pdf.pages[i])
+        
+        # If the insert position is after the last page, add the new page at the end
+        if insert_position >= len(pages_to_keep) and new_page_file and allowed_file(new_page_file.filename):
+            add_new_page(writer, new_page_file, target_width, target_height)
+        
+        if writer.pages:
+            output = io.BytesIO()
+            writer.write(output)
+            output.seek(0)
+            return send_file(output, download_name='edited_' + filename, as_attachment=True)
+        else:
+            flash('No changes were made to the PDF')
     
     return render_template('edit.html', filename=filename, num_pages=num_pages)
 
