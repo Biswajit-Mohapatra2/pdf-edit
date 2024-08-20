@@ -47,25 +47,40 @@ def edit_pdf(filename):
         pages_to_delete = request.form.getlist('delete_pages')
         pages_to_keep = [i for i in range(num_pages) if str(i+1) not in pages_to_delete]
         
-        # Handle new page insertion
-        new_page_file = request.files.get('new_page')
-        insert_position = int(request.form.get('insert_position', 1)) - 1
+        # Handle new page insertions
+        new_pages = request.files.getlist('new_pages')
+        insert_positions = request.form.getlist('insert_positions')
         
-        if new_page_file and allowed_file(new_page_file.filename):
-            # Get the size of the first page
-            first_page = pdf.pages[0]
-            target_width = first_page.mediabox.width
-            target_height = first_page.mediabox.height
+        # Create a list of (position, page) tuples for insertion
+        insertions = []
+        for i, new_page in enumerate(new_pages):
+            if new_page and allowed_file(new_page.filename):
+                position = int(insert_positions[i]) - 1 if i < len(insert_positions) else num_pages
+                insertions.append((position, new_page))
+        
+        # Sort insertions by position (descending) to maintain correct order
+        insertions.sort(key=lambda x: x[0], reverse=True)
+        
+        # Get the size of the first page for resizing new pages
+        first_page = pdf.pages[0]
+        target_width = first_page.mediabox.width
+        target_height = first_page.mediabox.height
         
         # Add pages to the new PDF
-        for i in pages_to_keep:
-            if i == insert_position and new_page_file and allowed_file(new_page_file.filename):
-                add_new_page(writer, new_page_file, target_width, target_height)
-            writer.add_page(pdf.pages[i])
+        current_page = 0
+        for i in range(num_pages):
+            if i in pages_to_keep:
+                while insertions and insertions[-1][0] == current_page:
+                    _, new_page = insertions.pop()
+                    add_new_page(writer, new_page, target_width, target_height)
+                    current_page += 1
+                writer.add_page(pdf.pages[i])
+                current_page += 1
         
-        # If the insert position is after the last page, add the new page at the end
-        if insert_position >= len(pages_to_keep) and new_page_file and allowed_file(new_page_file.filename):
-            add_new_page(writer, new_page_file, target_width, target_height)
+        # Add any remaining new pages at the end
+        while insertions:
+            _, new_page = insertions.pop()
+            add_new_page(writer, new_page, target_width, target_height)
         
         if writer.pages:
             output = io.BytesIO()
