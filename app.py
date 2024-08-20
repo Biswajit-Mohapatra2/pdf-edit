@@ -45,28 +45,26 @@ def edit_pdf(filename):
         
         if action == 'add_page':
             new_page_file = request.files.get('new_page')
+            insert_position = int(request.form.get('insert_position', 1)) - 1
+            
             if new_page_file and allowed_file(new_page_file.filename):
                 writer = PdfWriter()
                 
+                # Get the size of the first page
+                first_page = pdf.pages[0]
+                target_width = first_page.mediabox.width
+                target_height = first_page.mediabox.height
+                
                 # Add existing pages
                 for i in range(num_pages):
+                    if i == insert_position:
+                        # Add the new page at the specified position
+                        add_new_page(writer, new_page_file, target_width, target_height)
                     writer.add_page(pdf.pages[i])
                 
-                # Add the new page
-                if new_page_file.filename.lower().endswith('.pdf'):
-                    new_pdf = PdfReader(new_page_file)
-                    writer.add_page(new_pdf.pages[0])
-                else:
-                    # Convert image to PDF
-                    image = Image.open(new_page_file)
-                    pdf_bytes = io.BytesIO()
-                    if image.mode == 'RGBA':
-                        image = image.convert('RGB')
-                    image.save(pdf_bytes, format='PDF')
-                    pdf_bytes.seek(0)
-                    new_pdf = PdfReader(pdf_bytes)
-                    writer.add_page(new_pdf.pages[0])
-                    image.close()
+                # If the insert position is after the last page, add the new page at the end
+                if insert_position >= num_pages:
+                    add_new_page(writer, new_page_file, target_width, target_height)
                 
                 output = io.BytesIO()
                 writer.write(output)
@@ -75,8 +73,41 @@ def edit_pdf(filename):
                 return send_file(output, download_name='edited_' + filename, as_attachment=True)
             else:
                 flash('Please upload a valid PDF or image file (PNG, JPG, JPEG)')
+        
+        elif action == 'delete_pages':
+            pages_to_delete = request.form.getlist('delete_pages')
+            if pages_to_delete:
+                writer = PdfWriter()
+                for i in range(num_pages):
+                    if str(i+1) not in pages_to_delete:
+                        writer.add_page(pdf.pages[i])
+                
+                output = io.BytesIO()
+                writer.write(output)
+                output.seek(0)
+                
+                return send_file(output, download_name='edited_' + filename, as_attachment=True)
+            else:
+                flash('Please select at least one page to delete')
     
     return render_template('edit.html', filename=filename, num_pages=num_pages)
+
+def add_new_page(writer, new_page_file, target_width, target_height):
+    if new_page_file.filename.lower().endswith('.pdf'):
+        new_pdf = PdfReader(new_page_file)
+        new_page = new_pdf.pages[0]
+        new_page.scale_to(target_width, target_height)
+        writer.add_page(new_page)
+    else:
+        # Convert image to PDF and resize
+        image = Image.open(new_page_file)
+        image = image.convert('RGB')
+        image = image.resize((int(target_width), int(target_height)), Image.LANCZOS)
+        pdf_bytes = io.BytesIO()
+        image.save(pdf_bytes, format='PDF')
+        pdf_bytes.seek(0)
+        new_pdf = PdfReader(pdf_bytes)
+        writer.add_page(new_pdf.pages[0])
 
 if __name__ == '__main__':
     app.run(debug=True)

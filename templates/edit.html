@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PDF Editor</title>
+    <title>Edit PDF</title>
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-md w-96">
-        <h1 class="text-2xl font-bold mb-6 text-center">PDF Editor</h1>
+<body class="bg-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-6">Edit PDF: {{ filename }}</h1>
+        
         {% with messages = get_flashed_messages() %}
             {% if messages %}
                 {% for message in messages %}
@@ -18,22 +19,51 @@
                 {% endfor %}
             {% endif %}
         {% endwith %}
-        <form method="post" enctype="multipart/form-data" class="space-y-4">
-            <div class="flex items-center justify-center w-full">
-                <label for="new_page_upload" class="flex flex-col items-center justify-center w-full h-64 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
-                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
-                        <svg class="w-10 h-10 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                        </svg>
-                        <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">Click to upload</span> or drag and drop</p>
-                        <p class="text-xs text-gray-500">PDF or Image files (PNG, JPG, JPEG)</p>
+
+        <p class="mb-4">Current number of pages: {{ num_pages }}</p>
+
+        <form method="post" enctype="multipart/form-data" class="space-y-6">
+            <div>
+                <h2 class="text-xl font-semibold mb-4">Add New Page</h2>
+                <div class="flex items-center space-x-4">
+                    <div class="flex-grow">
+                        <label for="new_page" class="block text-sm font-medium text-gray-700">Upload new page (PDF, PNG, JPG, JPEG)</label>
+                        <input type="file" id="new_page" name="new_page" accept=".pdf,.png,.jpg,.jpeg" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
                     </div>
-                    <input id="new_page_upload" name="new_page" type="file" class="hidden" accept=".pdf, .png, .jpg, .jpeg" />
-                </label>
+                </div>
+                <p class="mt-2 text-sm text-gray-500">You can add PDF, PNG, JPG, or JPEG files as new pages.</p>
             </div>
-            <button type="submit" name="action" value="add_page" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
-                Add Page to PDF
-            </button>
+
+            <div>
+                <label for="insert_position" class="block text-sm font-medium text-gray-700">Insert page at position</label>
+                <input type="number" id="insert_position" name="insert_position" min="1" max="{{ num_pages + 1 }}" value="1" class="mt-1 focus:ring-blue-500 focus:border-blue-500 block w-full shadow-sm sm:text-sm border-gray-300 rounded-md">
+                <p class="mt-2 text-sm text-gray-500">Enter a number between 1 and {{ num_pages + 1 }}. The new page will be inserted before the specified position.</p>
+            </div>
+
+            <div>
+                <button type="submit" name="action" value="add_page" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Add New Page and Download
+                </button>
+            </div>
+        </form>
+
+        <hr class="my-8">
+
+        <form method="post" class="space-y-6">
+            <h2 class="text-xl font-semibold mb-4">Delete Pages</h2>
+            <div class="grid grid-cols-4 gap-4">
+                {% for i in range(1, num_pages + 1) %}
+                <div class="flex items-center">
+                    <input type="checkbox" id="delete_page_{{ i }}" name="delete_pages" value="{{ i }}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    <label for="delete_page_{{ i }}" class="ml-2 block text-sm text-gray-900">Page {{ i }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            <div>
+                <button type="submit" name="action" value="delete_pages" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                    Delete Selected Pages and Download
+                </button>
+            </div>
         </form>
     </div>
 </body>
